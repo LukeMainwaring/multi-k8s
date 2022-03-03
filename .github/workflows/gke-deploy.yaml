@@ -1,10 +1,17 @@
 name: Deploy React app to GKE
 
+
 on:
-  workflow_run:
-    workflows: Frontend unit tests
-    branches: [main]
-    types: completed
+  push:
+    branches:
+      - main
+
+# TODO: use this for tests as separate workflow
+# on:
+#   workflow_run:
+#     workflows: Frontend unit tests
+#     branches: [main]
+#     types: completed
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
@@ -13,6 +20,15 @@ env:
   SHA: ${ GITHUB_SHA:10 }
 
 jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build dockerfile
+      run: docker build -t lukemain/react-test -f ./client/Dockerfile.dev ./client
+    - name: Run tests
+      run: docker run -e CI=true lukemain/react-test npm test
+  
   publish-to-hub:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Publish to dockerhub
